@@ -71,11 +71,7 @@ operationDefinition
     ;
 
 namedOperationDefinition
-    : operationType NAME? variableDefinitions? directives? selectionSet
-    ;
-
-operationType
-    : QUERY | MUTATION
+    : QUERY NAME? variableDefinitions? directives? selectionSet
     ;
 
 variableDefinitions
@@ -211,9 +207,6 @@ BOOLEAN
     ;
 QUERY
     : 'query'
-    ;
-MUTATION
-    : 'mutation'
     ;
 NAME
     : [_A-Za-z][_0-9A-Za-z]*
