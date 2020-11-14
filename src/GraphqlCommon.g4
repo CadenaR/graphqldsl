@@ -1,219 +1,150 @@
-/*
-Copyright 2017 Charith Ellawala
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-grammar GraphQL;
-
-/* Schema rules */
-
-schema
-    : (typeDefinition | inputTypeDefinition | enumDefinition | interfaceDefinition | unionDefinition)+
-    ;
-
-typeDefinition
-    : 'type' namedType interfaceImplementation? fieldDefinitions
-    ;
-
-inputTypeDefinition
-    : 'input' namedType fieldDefinitions
-    ;
-
-enumDefinition
-    : 'enum' namedType enumFields
-    ;
-
-interfaceDefinition
-    : 'interface' namedType fieldDefinitions
-    ;
-
-unionDefinition
-    : 'union' namedType '=' namedType ('|' namedType)+
-    ;
-
-interfaceImplementation
-    : 'implements' namedType
-    ;
-
-fieldDefinitions
-    : '{' fieldDefinition (','* fieldDefinition)* '}'
-    ;
-
-fieldDefinition
-    : NAME ':' dataType
-    ;
-
-enumFields
-    : '{' NAME (','* NAME)* '}'
-    ;
+grammar GraphqlCommon;
 
 
-/* Query document rules */
+operationType : QUERY;
 
-document
-    : definition+
-    ;
+description : StringValue;
 
-definition
-    : operationDefinition | fragmentDefinition
-    ;
+enumValue : enumValueName ;
 
-operationDefinition
-    : selectionSet | namedOperationDefinition
-    ;
 
-namedOperationDefinition
-    : QUERY NAME? variableDefinitions? directives? selectionSet
-    ;
+arrayValue: '[' value* ']';
 
-variableDefinitions
-    : '(' variableDefinition (','* variableDefinition)* ')'
-    ;
+arrayValueWithVariable: '[' valueWithVariable* ']';
 
-variableDefinition
-    : variable ':' dataType defaultValue?
-    ;
 
-defaultValue
-    : '=' value
-    ;
 
-variable
-    : '$' NAME
-    ;
+objectValue: '{' objectField* '}';
+objectValueWithVariable: '{' objectFieldWithVariable* '}';
+objectField : name ':' value;
+objectFieldWithVariable : name ':' valueWithVariable;
 
-dataType
-    : namedType | listType | nonNullNamedType | nonNullListType
-    ;
 
-namedType
-    : NAME
-    ;
+directives : directive+;
 
-listType
-    : '[' dataType ']'
-    ;
+directive :'@' name arguments?;
 
-nonNullNamedType
-    : namedType '!'
-    ;
 
-nonNullListType
-    : listType '!'
-    ;
+arguments : '(' argument+ ')';
 
-selectionSet
-    : '{' selection (','* selection)* '}'
-    ;
+argument : name ':' valueWithVariable;
 
-selection
-    : field | fragmentSpread | inlineFragment
-    ;
+baseName: NAME | FRAGMENT | QUERY | SCHEMA | SCALAR | TYPE | INTERFACE | IMPLEMENTS | ENUM | UNION | INPUT | EXTEND | DIRECTIVE;
+fragmentName: baseName | BooleanValue | NullValue;
+enumValueName: baseName | ON_KEYWORD;
 
-field
-    : alias? NAME arguments? directives? selectionSet?
-    ;
+name: baseName | BooleanValue | NullValue | ON_KEYWORD;
 
-alias
-    : NAME ':'
-    ;
+value :
+StringValue |
+IntValue |
+FloatValue |
+BooleanValue |
+NullValue |
+enumValue |
+arrayValue |
+objectValue;
 
-fragmentDefinition
-    : 'fragment' fragmentName typeCondition directives? selectionSet
-    ;
 
-fragmentSpread
-    : '...' fragmentName directives?
-    ;
+valueWithVariable :
+variable |
+StringValue |
+IntValue |
+FloatValue |
+BooleanValue |
+NullValue |
+enumValue |
+arrayValueWithVariable |
+objectValueWithVariable;
 
-inlineFragment
-    : '...' typeCondition? directives? selectionSet
-    ;
 
-fragmentName
-    : NAME
-    ;
+variable : '$' name;
 
-typeCondition
-    : 'on' namedType
-    ;
+defaultValue : '=' value;
 
-directives
-    : directive (','* directive)*
-    ;
+type : typeName | listType | nonNullType;
 
-directive
-    : '@' NAME arguments?
-    ;
+typeName : name;
+listType : '[' type ']';
+nonNullType: typeName '!' | listType '!';
 
-arguments
-    : '(' argument (','* argument)* ')'
-    ;
 
-argument
-    : NAME ':' value
-    ;
+BooleanValue: 'true' | 'false';
 
-value
-    : variable | FLOAT | INT | STRING | BOOLEAN | NULL | enumValue | listValue | objectValue
-    ;
+NullValue: 'null';
 
-enumValue
-    : NAME
-    ;
+FRAGMENT: 'fragment';
+QUERY: 'query';
+SCHEMA: 'schema';
+SCALAR: 'scalar';
+TYPE: 'type';
+INTERFACE: 'interface';
+IMPLEMENTS: 'implements';
+ENUM: 'enum';
+UNION: 'union';
+INPUT: 'input';
+EXTEND: 'extend';
+DIRECTIVE: 'directive';
+ON_KEYWORD: 'on';
+NAME: [_A-Za-z][_0-9A-Za-z]*;
 
-listValue
-    : '[' ']' | '[' value (','* value)* ']'
-    ;
 
-objectValue
-    : '{' '}' | '{' argument (','* argument)* '}'
-    ;
 
-STRING
-    : '"' (ESCAPED_CHAR | ESCAPED_UNICODE | ~["\\])* '"'
-    ;
-fragment ESCAPED_CHAR
-    : '\\' ["\\/bfnrt]
-    ;
-fragment ESCAPED_UNICODE
-    : '\\u' HEX_CHAR HEX_CHAR HEX_CHAR HEX_CHAR
-    ;
-fragment HEX_CHAR
-    : [0-9a-fA-F]
-    ;
-FLOAT
-    : INT '.' [0-9]+ EXPONENT? | INT EXPONENT | INT
-    ;
-INT
-    : '-'? ('0' | [1-9][0-9]*)
-    ;
-fragment EXPONENT
-    : [Ee] '+'? INT
-    ;
-NULL
-    : 'null'
-    ;
-BOOLEAN
-    : 'true' | 'false'
-    ;
-QUERY
-    : 'query'
-    ;
-NAME
-    : [_A-Za-z][_0-9A-Za-z]*
-    ;
-WS
-    : [ \t\n\r]+ -> channel(HIDDEN)
-    ;
-COMMENT
-    : '#' ~[\r\n]* -> channel(HIDDEN)
-    ;
+// Int Value
+IntValue :  IntegerPart { !isDigit(_input.LA(1)) && !isDot(_input.LA(1)) && !isNameStart(_input.LA(1))  }?;
+fragment IntegerPart : NegativeSign? '0' | NegativeSign? NonZeroDigit Digit*;
+fragment NegativeSign : '-';
+fragment NonZeroDigit: '1'..'9';
+
+// Float Value
+FloatValue : ((IntegerPart FractionalPart ExponentPart) { !isDigit(_input.LA(1)) && !isDot(_input.LA(1)) && !isNameStart(_input.LA(1))  }?) |
+    ((IntegerPart FractionalPart ) { !isDigit(_input.LA(1)) && !isDot(_input.LA(1)) && !isNameStart(_input.LA(1))  }?) |
+    ((IntegerPart ExponentPart) { !isDigit(_input.LA(1)) && !isDot(_input.LA(1)) && !isNameStart(_input.LA(1))  }?);
+fragment FractionalPart: '.' Digit+;
+fragment ExponentPart :  ExponentIndicator Sign? Digit+;
+fragment ExponentIndicator: 'e' | 'E';
+fragment Sign: '+'|'-';
+fragment Digit : '0'..'9';
+
+// StringValue
+StringValue:
+'""'  { _input.LA(1) != '"'}? |
+'"' StringCharacter+ '"' |
+'"""' BlockStringCharacter*? '"""';
+
+fragment BlockStringCharacter:
+'\\"""'|
+ExtendedSourceCharacter;
+
+fragment StringCharacter:
+([\u0009\u0020\u0021] | [\u0023-\u005b] | [\u005d-\u{10FFFF}]) |  // this is SoureCharacter without '"' and '\'
+'\\u' EscapedUnicode  |
+'\\' EscapedCharacter;
+
+fragment EscapedCharacter :  ["\\/bfnrt];
+fragment EscapedUnicode : Hex Hex Hex Hex;
+fragment Hex : [0-9a-fA-F];
+
+
+// this is currently not covered by the spec because we allow all unicode chars
+// u0009 = \t Horizontal tab
+// u000a = \n line feed
+// u000d = \r carriage return
+// u0020 = space
+fragment ExtendedSourceCharacter :[\u0009\u000A\u000D\u0020-\u{10FFFF}];
+fragment ExtendedSourceCharacterWithoutLineFeed :[\u0009\u0020-\u{10FFFF}];
+
+// this is the spec definition
+// fragment SourceCharacter :[\u0009\u000A\u000D\u0020-\uFFFF];
+
+
+Comment: '#' ExtendedSourceCharacterWithoutLineFeed* -> channel(2);
+
+LF: [\n] -> channel(3);
+CR: [\r] -> channel(3);
+LineTerminator: [\u2028\u2029] -> channel(3);
+
+Space : [\u0020] -> channel(3);
+Tab : [\u0009] -> channel(3);
+Comma : ',' -> channel(3);
+UnicodeBOM : [\ufeff] -> channel(3);
